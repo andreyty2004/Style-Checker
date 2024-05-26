@@ -1,15 +1,6 @@
 from docx import Document
-from docx2python import docx2python as dx2py
 import re
-import sys
-import docx2txt
-import os
-import xml.etree.ElementTree as ET
-from lxml import etree
-import shutil
-import pyunpack
 from docx.enum.text import WD_ALIGN_PARAGRAPH
-from docx.oxml.ns import qn
 from bs4 import BeautifulSoup
 
 
@@ -483,17 +474,6 @@ for i in range(0, len(doc.paragraphs)):
         
 
 
-        
-        
-
-        
-
-        
-
-
-        
-
-
 
 #w:instr - если в подписи стоит номер или SEQ
 #w:instrText - если в тексте нумерован правильно (стоит ссылка) иначе этой штуки нет
@@ -502,6 +482,4 @@ for i in range(0, len(doc.paragraphs)):
 #а позапрошлый - пустой 
 #w:bookmarkStart - можно сверить на что ссылается ссылка из текста с помощью name REF
 #w:instrText REF - есть если в тексте стоит именно ссылка
-
-
 
