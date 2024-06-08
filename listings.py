@@ -1,14 +1,10 @@
 from docx import Document
-from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH #чтобы смотреть выравнивания
 import re
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-import shutil
-import os
 from lxml import etree
-import pyunpack
+import zipfile
 
-doc = Document('file.docx')
+doc = Document('test_listings.docx')
 
 output = open("OUTPUT.txt", "w+")
 
@@ -19,14 +15,14 @@ string = re.findall('(xmlns:w=".*?")', doc._element.xml)[0]
 w = (re.findall('".*"', string)[0])[1:-1]
 #w - не должна зависеть от версии word
 
-os.mkdir('temp')
-shutil.copy2('test.docx', 'temp/test-archive.docx')
-os.rename('temp/test-archive.docx', 'temp/test-archive.rar')
-pyunpack.Archive('temp/test-archive.rar').extractall('temp')
+
+with zipfile.ZipFile('test_listings.docx', 'r') as zip_file:
+    numbering_xml = zip_file.read('word/numbering.xml')
 
 
 def get_num_fmt(numId, ilvl):
-    tree = etree.parse('temp/word/numbering.xml')
+    tree = etree.fromstring(numbering_xml)
+
     abstractNumId = str(tree.xpath('w:num[@w:numId="{0}"]/w:abstractNumId/@w:val'.format(numId), namespaces = {'w': '{0}'.format(w)})[0])
 
     if len(tree.xpath('w:abstractNum[@w:abstractNumId="{0}"]/w:lvl[@w:ilvl="{1}"]/w:numFmt/@w:val'.format(abstractNumId, ilvl), namespaces = {'w': '{0}'.format(w)})) == 0:
@@ -37,7 +33,7 @@ def get_num_fmt(numId, ilvl):
 
 
 def get_lvl_text(numId, ilvl):
-    tree = etree.parse('temp/word/numbering.xml')
+    tree = etree.fromstring(numbering_xml)
     abstractNumId = str(tree.xpath('w:num[@w:numId="{0}"]/w:abstractNumId/@w:val'.format(numId), namespaces = {'w': '{0}'.format(w)})[0])
 
     if len(tree.xpath('w:abstractNum[@w:abstractNumId="{0}"]/w:lvl[@w:ilvl="{1}"]/w:lvlText/@w:val'.format(abstractNumId, ilvl), namespaces = {'w': '{0}'.format(w)})) == 0:
@@ -110,6 +106,3 @@ for i in range(0, len(numbered_paragraphs) - 1):
         depth = 1
 
 proccesing(depth, single_numered_list)
-
-
-shutil.rmtree('temp')
