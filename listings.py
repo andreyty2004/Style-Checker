@@ -4,20 +4,48 @@ import re
 from lxml import etree
 import zipfile
 
-doc = Document('test_listings.docx')
+letter_numbering = ['upperLetter', 'lowerLetter', 'russianUpper', 'russianLower']
 
-output = open("OUTPUT.txt", "w+")
+def listings(fpath = ""):
 
-string = re.findall('(xmlns:w=".*?")', doc._element.xml)[0]
-#? - ленивый захват (как можно меньшую строку)
-#. - любой символ
-#* - любое количество раз
-w = (re.findall('".*"', string)[0])[1:-1]
-#w - не должна зависеть от версии word
+    doc = Document(fpath)
+    output = "-- Проверка списков --\n"
 
+    string = re.findall('(xmlns:w=".*?")', doc._element.xml)[0]
+    #? - ленивый захват (как можно меньшую строку)
+    #. - любой символ
+    #* - любое количество раз
+    global w
+    w = (re.findall('".*"', string)[0])[1:-1]
+    #w - не должна зависеть от версии word
 
-with zipfile.ZipFile('test_listings.docx', 'r') as zip_file:
-    numbering_xml = zip_file.read('word/numbering.xml')
+    global numbering_xml
+    with zipfile.ZipFile(fpath, 'r') as zip_file:
+        numbering_xml = zip_file.read('word/numbering.xml')
+
+    numbered_paragraphs = []
+    for i in range(0, len(doc.paragraphs)):
+        if doc.paragraphs[i].style.name == 'List Paragraph':
+            numbered_paragraphs.append(doc.paragraphs[i])
+
+    single_numered_list = []
+    single_numered_list.append(numbered_paragraphs[0])
+    depth = 1
+
+    for i in range(0, len(numbered_paragraphs) - 1):
+        if num(numbered_paragraphs[i]) == num(numbered_paragraphs[i + 1]):
+            single_numered_list.append(numbered_paragraphs[i + 1])
+            if lvl(numbered_paragraphs[i]) != lvl(numbered_paragraphs[i + 1]):
+                depth += 1  
+    else:
+        proccesing(depth, single_numered_list)
+        single_numered_list.clear()
+        single_numered_list.append(numbered_paragraphs[i + 1])
+        depth = 1
+
+    output = output + proccesing(depth, single_numered_list)
+    return output
+
 
 
 def get_num_fmt(numId, ilvl):
@@ -54,21 +82,13 @@ def lvl(paragraph):
     return ilvl
 
 
-numbered_paragraphs = []
-for i in range(0, len(doc.paragraphs)):
-    
-    if doc.paragraphs[i].style.name == 'List Paragraph':
-        numbered_paragraphs.append(doc.paragraphs[i])
-
-
-letter_numbering = ['upperLetter', 'lowerLetter', 'russianUpper', 'russianLower']
-
 def proccesing(depth, single_numered_list):
+    ftext = ""
     # одноуровневый
     if depth == 1:
         for par in single_numered_list:
             if get_num_fmt(num(par), lvl(par)) not in ('decimal', 'bullet'):
-                output.write("При создании нумерованного одноуровневого списка {0} используются арабские цифры\n".format([par.text for par in single_numered_list]))
+                ftext = "-> При создании нумерованного одноуровневого списка {0} используются арабские цифры\n".format([par.text for par in single_numered_list])
                 break
 
     # двухуровневый
@@ -76,8 +96,7 @@ def proccesing(depth, single_numered_list):
         for par in single_numered_list:
             if ((int(lvl(par)) == 0 and get_num_fmt(num(par), lvl(par)) != 'decimal') or
                 (int(lvl(par)) == 1 and get_lvl_text(num(par), lvl(par)) != '-')):
-
-                output.write("При формировании двухуровневого списка {0} рекомендовано импользовать схему «номер – дефис»\n".format([par.text for par in single_numered_list]))
+                ftext = ftext + "-> При формировании двухуровневого списка {0} рекомендовано импользовать схему «номер – дефис»\n".format([par.text for par in single_numered_list])
                 break
 
     # многоуровневый
@@ -86,23 +105,8 @@ def proccesing(depth, single_numered_list):
             if ((int(lvl(par)) == 0 and get_num_fmt(num(par), lvl(par)) != 'decimal') or
                 (int(lvl(par)) == 1 and get_num_fmt(num(par), lvl(par)) not in letter_numbering) or
                 (int(lvl(par)) == 2 and get_lvl_text(num(par), lvl(par)) != '-')):
-                
-                output.write("Многоуровневые списки {0} рекомендуется создавать с соблюдением иерархии «номер – буква – дефис»\n".format([par.text for par in single_numered_list]))
+                ftext = ftext + "-> Многоуровневые списки {0} рекомендуется создавать с соблюдением иерархии «номер – буква – дефис»\n".format([par.text for par in single_numered_list])
                 break
-
-single_numered_list = []
-single_numered_list.append(numbered_paragraphs[0])
-depth = 1
-
-for i in range(0, len(numbered_paragraphs) - 1):
-    if num(numbered_paragraphs[i]) == num(numbered_paragraphs[i + 1]):
-        single_numered_list.append(numbered_paragraphs[i + 1])
-        if lvl(numbered_paragraphs[i]) != lvl(numbered_paragraphs[i + 1]):
-            depth += 1  
-    else:
-        proccesing(depth, single_numered_list)
-        single_numered_list.clear()
-        single_numered_list.append(numbered_paragraphs[i + 1])
-        depth = 1
-
-proccesing(depth, single_numered_list)
+    if(ftext == ""):
+        ftext = "-> OK\n"
+    return ftext
