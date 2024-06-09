@@ -109,4 +109,5 @@ def proccesing(depth, single_numered_list):
                 break
     if(ftext == ""):
         ftext = "-> OK\n"
+    ftext = ftext + "\n"
     return ftext
