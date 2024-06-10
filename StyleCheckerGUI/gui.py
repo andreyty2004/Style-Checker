@@ -44,7 +44,7 @@ class MyWindow(QMainWindow):
         self.upload = QtWidgets.QPushButton(self)
         self.upload.setText("ВЫБРАТЬ\nФАЙЛ")
         self.upload.setFont(QFont('Helvetica Bold', 12))
-        self.upload.setToolTip("Выберете файл")
+        self.upload.setToolTip("Выберите файл")
         self.upload.setGeometry(self.title.pos().x(), self.title.pos().y() + 100, 120, 120)
         self.upload.setStyleSheet("QPushButton::hover" "{""background-color : lightgreen;"";}"
                                   "QPushButton" "{"
