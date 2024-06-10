@@ -29,7 +29,8 @@ def listings(fpath = ""):
             numbered_paragraphs.append(doc.paragraphs[i])
 
     single_numered_list = []
-    single_numered_list.append(numbered_paragraphs[0])
+    if len(numbered_paragraphs) > 0:
+        single_numered_list.append(numbered_paragraphs[0])
     depth = 1
 
     for i in range(0, len(numbered_paragraphs) - 1):
@@ -37,11 +38,11 @@ def listings(fpath = ""):
             single_numered_list.append(numbered_paragraphs[i + 1])
             if lvl(numbered_paragraphs[i]) != lvl(numbered_paragraphs[i + 1]):
                 depth += 1  
-    else:
-        proccesing(depth, single_numered_list)
-        single_numered_list.clear()
-        single_numered_list.append(numbered_paragraphs[i + 1])
-        depth = 1
+        else:
+            proccesing(depth, single_numered_list)
+            single_numered_list.clear()
+            single_numered_list.append(numbered_paragraphs[i + 1])
+            depth = 1
 
     output = output + proccesing(depth, single_numered_list)
     return output

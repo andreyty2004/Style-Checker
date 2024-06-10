@@ -6,6 +6,12 @@ import sys
 from docx import Document
 sys.path.append('./')
 from page_numbering import page_numbering
+from headers import headers
+from illustrations import illustrations
+from listings import listings
+from tables import tables
+from applications import applications
+from literature import literature
 os.chdir('StyleCheckerGUI')
 
 class MyWindow(QMainWindow):
@@ -102,11 +108,20 @@ class MyWindow(QMainWindow):
         if(browse_path != ""):
             try:
                 doc = Document(browse_path)
+                self.fname = os.path.normpath(self.fpath[0]).split(os.path.sep)[-1]
+                self.check_text = ""
+                
+                self.check_text = page_numbering(self.fpath[0])
+                self.check_text = self.check_text + headers(self.fpath[0])
+                self.check_text = self.check_text + illustrations(self.fpath[0])
+                self.check_text = self.check_text + listings(self.fpath[0])
+                self.check_text = self.check_text + tables(self.fpath[0])
+                self.check_text = self.check_text + applications(self.fpath[0])
+                self.check_text = self.check_text + literature(self.fpath[0])
+
+                self.label.setText(self.fname)
                 self.download.setEnabled(True)
                 self.view.setEnabled(True)
-                self.fname = os.path.normpath(self.fpath[0]).split(os.path.sep)[-1]
-                self.check_text = page_numbering(self.fpath[0])
-                self.label.setText(self.fname)
             except:
                 msg = QMessageBox()
                 msg.setWindowTitle("Error")
@@ -172,10 +187,8 @@ class TextWindow(QMainWindow):
 
 def window():
     app = QApplication(sys.argv)
-    win = MyWindow(500, 500)
+    win = MyWindow(500, 450)
     win.show()
     sys.exit(app.exec_())
 
 window()
-# добавить русификацию
-# QLabel - название открытого файла

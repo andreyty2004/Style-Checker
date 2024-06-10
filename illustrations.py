@@ -82,7 +82,11 @@ def page_increment(i, j):
 
 
 def get_picture_bottom_boarder_pt(run_xml):
-    positionV = re.findall('(<wp:positionV(.|\n)*?wp:positionV>)', str(run_xml))[0]
+    positionV = re.findall('(<wp:positionV(.|\n)*?wp:positionV>)', str(run_xml))
+    if len(positionV) > 0:
+        positionV = positionV[0]
+    else:
+        return None
     posOffset = re.findall('(<wp:posOffset.*?wp:posOffset>)', str(positionV))[0]
     top_boarder = re.findall('([-+]?\d+)', str(posOffset))[0]
 
@@ -109,14 +113,15 @@ def checking_str(stroka, name, bottom_boarder, page, in_one_par):
     ftext = ""
 
     if stroka.count('"center"') == 0:
-        ftest = f'-> Подпись к рисунку "{name}" на странице {page} должна размещаться по центру\n'
+        ftext = ftext + f'-> Подпись к рисунку "{name}" на странице {page} должна размещаться по центру\n'
     
     if stroka.count('<w:sz w:val="28"/>') == 0:
         ftext = ftext + f'-> Размер шрифра подписи к рисунку "{name}" на странице {page} должен совпадать с размером шрифта в основном тексте\n'
 
-    if 'w:b w:val="0"' not in stroka:
-        ftext = ftext + f'-> Шрифт подписи к рисунку "{name}" на странице {page} не должен быть написан жирным шрифтом\n'
-    
+    if 'w:b' in stroka:
+        if 'w:b w:val="0"' not in stroka:
+            ftext = ftext + f'-> Шрифт подписи к рисунку "{name}" на странице {page} не должен быть написан жирным шрифтом\n'
+        
     runs = BeautifulSoup(stroka, "lxml").find_all("w:r") # прогоны в подписи w:pict
     for tag in runs:
         if len(tag.find_all("w:i")) != 0:
@@ -133,7 +138,7 @@ def checking_str(stroka, name, bottom_boarder, page, in_one_par):
     if 'w:hAnsi="Times New Roman"' not in stroka:
         ftext = ftext + f'-> Тип шрифра подписи к рисунку "{name}" на странице {page} должен совпадать с типом шрифта в основном тексте\n'
 
-    if in_one_par:
+    if in_one_par and bottom_boarder != None:
         if abs(get_title_top_margin(stroka) - bottom_boarder) > 2.8:
             ftext = ftext + f'-> Подпись должна размещаться сразу под рисунком "{name}" на странице {page}\n'
 
@@ -265,9 +270,9 @@ def check_numbering_above(i, name, number, c, page):
 
     if number_of_title not in mention_text:
         ftext = ftext + f'-> Ошибка в упоминании рисунка "{name}" на странице {page} в тексте перед рисунком. Рисунки в разделах нумеруются по схеме «номер раздела – точка – номер рисунка»\n'
+    return ftext
 
 def mentioned_above(i, name, number, c, page): # i - index of drawing
-
     ftext = ""
     par = doc.paragraphs[i]
 
@@ -275,8 +280,8 @@ def mentioned_above(i, name, number, c, page): # i - index of drawing
         ftext = f'-> Ссылка на рисунок "{name}" на странице {page} должна быть дана без сокращений\n'
         return
 
-    if 'Рисун' in par.text or 'рисун' in par.text:
-        check_numbering_above(i, name, number, c, page)
+    if 'рисун' in par.text.lower():
+        ftext = ftext + check_numbering_above(i, name, number, c, page)
 
         if 'w:instrText' in par._p.xml:
             return
@@ -295,23 +300,22 @@ def mentioned_above(i, name, number, c, page): # i - index of drawing
             c1 = par_k.text.count('Рис.')
             c2 = par_k.text.count('рис.')
             if c1 > 0 or c2 > 0:
-                ftext = ftext + f'-> Ссылка на рисунок "{name}" на странице {page} должна быть дана без сокращений\n'
+                ftext = ftext = f'-> Ссылка на рисунок "{name}" на странице {page} должна быть дана без сокращений\n'
                 break
 
             c1 = par_k.text.count('Рисун')
             c2 = par_k.text.count('рисун')
             if c1 + c2 == 0:
-                ftext = ftext = f'-> Не найдено упоминание рисунка "{name}" на странице {page} в тексте перед рисунком\n'
+                ftext = ftext + f'-> Не найдено упоминание рисунка "{name}" на странице {page} в тексте перед рисунком\n'
                 break
             
             if c1 + c2 != 0:
-                check_numbering_above(i - k, name, number, c, page)
+                ftext = ftext + check_numbering_above(i - k, name, number, c, page)
                 if 'w:instrText' not in par_k._p.xml:
                     ftext = ftext + f'-> Ссылка на рисунок "{name}" на странице {page} в тексте должна являться перекрестной ссылкой (при нажатии на нее переносит на рисунок)\n'
 
             break
     return ftext
-
 
 def illustrations(fpath = ""):
 
